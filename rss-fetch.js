@@ -263,7 +263,7 @@ async function fetchRSS() {
         width: 100% !important;
         max-width: 800px;
         margin: 0 !important;
-        padding: 400px 8px 300px 8px !important;
+        padding: 300px 8px 300px 8px !important;
         box-sizing: border-box !important;
           font-family: 
             -apple-system, /* iOS/macOS の San Francisco */
