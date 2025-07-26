@@ -278,6 +278,7 @@ async function fetchRSS() {
       display: flex;
       justify-content: space-between; /* タイトルと更新時刻を左右に配置 */
       align-items: center;
+      user-select: none;  
     }
 
     .emoji {
