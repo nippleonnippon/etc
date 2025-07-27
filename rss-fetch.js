@@ -50,7 +50,6 @@ async function fetchRSS() {
   const promises = rssUrls.map(async feedInfo => {
     try {
       const feed = await parser.parseURL(feedInfo.url);
-      console.log(`取得: ${feedInfo.source} 件数=${feed.items.length}`);
       return feed.items.map(item => {
         const rawDate = item.pubDate || item.dcDate || '';
         const pubDate = parseDateSafe(rawDate);
@@ -72,7 +71,6 @@ async function fetchRSS() {
   allItems.sort((a, b) => b.pubDate - a.pubDate);
   if (allItems.length > DEFAULT_MAX_ITEMS) allItems = allItems.slice(0, DEFAULT_MAX_ITEMS);
 
-  console.log(`合計記事数: ${allItems.length}`);
 
   const itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
   const totalPages = Math.ceil(allItems.length / itemsPerPage);
@@ -263,7 +261,7 @@ async function fetchRSS() {
         width: 100% !important;
         max-width: 800px;
         margin: 0 !important;
-        padding: 300px 8px 300px 8px !important;
+        padding: 300px 8px 200px 8px !important;
         box-sizing: border-box !important;
           font-family: 
             -apple-system, /* iOS/macOS の San Francisco */
@@ -405,8 +403,19 @@ async function fetchRSS() {
 `;
 
   fs.writeFileSync('index.html', html, 'utf-8');
-  console.log("✅ index.html に保存しました（" + allItems.length + "件）");
 }
 
 
 fetchRSS();
+/*
+console.log('🚀Start fetch RSS🚀');
+// fetchMinuit分毎に更新
+setInterval(fetchRSS, fetchMinuit * 60 * 1000);
+
+/*
+
+npm run start
+
+npm run tunnel
+
+*/
