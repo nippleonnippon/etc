@@ -2,7 +2,7 @@ name: RSS Update
 
 on:
   schedule:
-    - cron: "*/1 * * * *"   # 1分ごとに実行
+    - cron: "*/3 * * * *"   # 3分ごとに実行
   workflow_dispatch:         # 手動実行も可能
 
 jobs:
@@ -31,5 +31,5 @@ jobs:
           git add index.html
           git commit -m "Auto-update RSS feed" || echo "No changes to commit"
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
-          
+
 
