@@ -410,5 +410,3 @@ async function fetchRSS() {
 
 
 fetchRSS();
-// 5分毎に更新
-setInterval(fetchRSS, fetchMinuit * 60 * 1000);
