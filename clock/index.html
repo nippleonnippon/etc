@@ -122,10 +122,10 @@ html, body {
 #settings-window {
     display: none;
     position: absolute;
-    bottom: 15%;
+    bottom: 15vh;
     max-width: 500px;
     width: calc(100vw - 80px);
-    height: 150px;
+    height: 184px;
     background: #40404080;
     padding: 20px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
@@ -133,6 +133,7 @@ html, body {
     border: 0;
     border-radius: 10px;
     z-index: 100;
+    box-sizing: border-box;
 }
 
 .setting-item {
