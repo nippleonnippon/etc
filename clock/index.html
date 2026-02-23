@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>デジタルクロック</title>
     <style>
         /* @description: クロック表示および画面最下部の設定UI。
@@ -17,26 +17,40 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            height: 100%;
-            overflow: hidden;
+            /* 追加・修正箇所: Safariのアドレスバーを隠すためのスクロール余白を確保 */
+            height: calc(100vh + 40px);
             background-color: #000;
             color: #ff0000;
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            /* スクロールバー自体は非表示にする */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
         }
 
         /* 全てを包むラッパー */
         #clock-wrapper {
             position: relative;
             width: 100%;
-            height: 100%;
+            /* 修正箇所: ラッパー自体の高さは画面ぴったりに維持 */
+            height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             box-sizing: border-box;
             cursor: pointer;
+        }
+
+        /* 追加・修正箇所: 物理的なスクロール用スペーサー */
+        #spacer {
+            height: 40px;
+            width: 100%;
         }
 
         #display-container {
@@ -131,9 +145,11 @@
     </div>
 </div>
 
+<div id="spacer"></div>
+
 <script>
 /**
- * @description: クロック更新、設定の保存、および日付サイズ比率計算ロジック。
+ * @description: クロック更新、設定の保存、およびスリープ防止ロジック。
  */
 (function() {
     const clockWrapper = document.getElementById('clock-wrapper');
@@ -147,7 +163,9 @@
     const secondsCheck = document.getElementById('toggle-seconds');
     const dateCheck = document.getElementById('toggle-date');
 
-    // 追加・修正箇所: dateRatioを保存項目に追加
+    // 追加・修正箇所: スリープ防止 (Screen Wake Lock API) 制御変数
+    let wakeLock = null;
+
     const savedSettings = JSON.parse(localStorage.getItem('clockSettings')) || {
         hue: 0,
         timeSize: 20,
@@ -168,6 +186,17 @@
     secondsCheck.checked = showSeconds;
     dateCheck.checked = showDate;
 
+    // 追加・修正箇所: スリープ防止リクエスト関数
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+        }
+    }
+
     function saveToStorage() {
         const settings = { 
             hue: currentHue, 
@@ -179,17 +208,11 @@
         localStorage.setItem('clockSettings', JSON.stringify(settings));
     }
 
-    // 追加・修正箇所: 比率に基づいたフォントサイズ計算
     function applyStyles() {
         const color = `hsl(${currentHue}, 100%, 50%)`;
         timeDisplay.style.color = color;
         dateDisplay.style.color = color;
-        
-        // 時計のサイズ(vw)を適用
         timeDisplay.style.fontSize = `${currentTimeSize}vw`;
-        
-        // 日付のサイズ = 時計のサイズ × 比率
-        // 例: 20vw * 15% = 3vw
         const calculatedDateSize = (currentTimeSize * currentDateRatio) / 100;
         dateDisplay.style.fontSize = `${calculatedDateSize}vw`;
     }
@@ -212,7 +235,23 @@
 
     clockWrapper.addEventListener('click', (e) => {
         if (settingsWindow.contains(e.target)) return;
+        
+        // 追加・修正箇所: 最初のクリック時にスリープ防止を有効化
+        if (!wakeLock) requestWakeLock();
+        
         settingsWindow.style.display = settingsWindow.style.display === 'block' ? 'none' : 'block';
+    });
+
+    // 追加・修正箇所: タブ復帰時にスリープ防止を再取得
+    document.addEventListener('visibilitychange', () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            requestWakeLock();
+        }
+    });
+
+    // 追加・修正箇所: 起動時に自動スクロールを試行
+    window.addEventListener('load', () => {
+        setTimeout(() => { window.scrollTo(0, 40); }, 300);
     });
 
     colorSlider.addEventListener('input', (e) => {
@@ -227,7 +266,6 @@
         saveToStorage();
     });
 
-    // 追加・修正箇所: 比率スライダーのイベントリスナー
     dateRatioSlider.addEventListener('input', (e) => {
         currentDateRatio = e.target.value;
         applyStyles();
