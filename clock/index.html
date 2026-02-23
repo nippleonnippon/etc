@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>デジタルクロック</title>
     <style>
-        /* @description: クロック表示および画面最下部の設定UI。
-           Stylusでの編集を前提とし、指示された配置構成のみを定義。
-        */
+        /* 追加・修正箇所: 2種類のデジタルフォントを定義 */
         @font-face {
             font-family: 'Digital7-Mono';
+            src: url('./res/digital-7mono.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Digital7-Standard';
             src: url('./res/digital-7.ttf') format('truetype');
         }
 
@@ -17,14 +19,12 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            /* 追加・修正箇所: Safariのアドレスバーを隠すためのスクロール余白を確保 */
             height: calc(100vh + 40px);
             background-color: #000;
             color: #ff0000;
             font-family: sans-serif;
             user-select: none;
             -webkit-user-select: none;
-            /* スクロールバー自体は非表示にする */
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
@@ -33,11 +33,9 @@
             display: none;
         }
 
-        /* 全てを包むラッパー */
         #clock-wrapper {
             position: relative;
             width: 100%;
-            /* 修正箇所: ラッパー自体の高さは画面ぴったりに維持 */
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -47,7 +45,6 @@
             cursor: pointer;
         }
 
-        /* 追加・修正箇所: 物理的なスクロール用スペーサー */
         #spacer {
             height: 40px;
             width: 100%;
@@ -55,6 +52,8 @@
 
         #display-container {
             text-align: center;
+            /* 追加・修正箇所: コンテナ自体の幅を確保 */
+            width: 100%;
         }
 
         #date-display {
@@ -62,12 +61,35 @@
         }
 
         #time-display {
+            /* 追加・修正箇所: コロンを中央にするためのFlexレイアウト設定 */
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
             font-family: 'Digital7-Mono', monospace;
             line-height: 1;
             -webkit-text-size-adjust: 100%;
+            white-space: nowrap;
+            padding-right: 8%;
         }
 
-        /* 設定UIウィンドウ（画面最下部） */
+        /* 追加・修正箇所: 時・分・秒の各ブロックの幅を均等化してコロンを中央に固定 */
+        .time-part {
+            flex: 1;
+            text-align: center;
+        }
+        /* 時（左側）は右寄せ、分（右側）は左寄せにすることでコロンを挟む */
+        .time-part.hour { text-align: right; }
+        .time-part.min  { text-align: left; }
+        .time-part.sec  { text-align: left; flex: 0.8; } /* 秒は少し幅を抑える */
+
+        .colon {
+            font-family: 'Digital7-Standard', sans-serif;
+            margin: 0 0.02em;
+            /* 追加・修正箇所: コロン自体の幅を固定的に扱う */
+            flex-shrink: 0;
+            text-align: center;
+        }
+
         #settings-window {
             display: none;
             position: absolute;
@@ -141,7 +163,7 @@
 
     <div id="display-container">
         <div id="date-display"></div>
-        <div id="time-display">00:00:00</div>
+        <div id="time-display"></div>
     </div>
 </div>
 
@@ -149,7 +171,7 @@
 
 <script>
 /**
- * @description: クロック更新、設定の保存、およびスリープ防止ロジック。
+ * @description: クロック更新、設定の保存、およびコロン中央配置ロジック。
  */
 (function() {
     const clockWrapper = document.getElementById('clock-wrapper');
@@ -163,7 +185,6 @@
     const secondsCheck = document.getElementById('toggle-seconds');
     const dateCheck = document.getElementById('toggle-date');
 
-    // 追加・修正箇所: スリープ防止 (Screen Wake Lock API) 制御変数
     let wakeLock = null;
 
     const savedSettings = JSON.parse(localStorage.getItem('clockSettings')) || {
@@ -186,7 +207,6 @@
     secondsCheck.checked = showSeconds;
     dateCheck.checked = showDate;
 
-    // 追加・修正箇所: スリープ防止リクエスト関数
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try {
@@ -230,26 +250,32 @@
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         const s = String(now.getSeconds()).padStart(2, '0');
-        timeDisplay.textContent = showSeconds ? `${h}:${m}:${s}` : `${h}:${m}`;
+        
+        const colonHtml = '<span class="colon">:</span>';
+        
+        /* 追加・修正箇所: コロンを中央にするためのHTML構造に変更 */
+        /* 時(hour)を右、分(min)を左に寄せることで中央のコロンが芯に来るようにします */
+        let html = `<span class="time-part hour">${h}</span>${colonHtml}<span class="time-part min">${m}</span>`;
+        
+        if (showSeconds) {
+            html += `${colonHtml}<span class="time-part sec">${s}</span>`;
+        }
+        
+        timeDisplay.innerHTML = html;
     }
 
     clockWrapper.addEventListener('click', (e) => {
         if (settingsWindow.contains(e.target)) return;
-        
-        // 追加・修正箇所: 最初のクリック時にスリープ防止を有効化
         if (!wakeLock) requestWakeLock();
-        
         settingsWindow.style.display = settingsWindow.style.display === 'block' ? 'none' : 'block';
     });
 
-    // 追加・修正箇所: タブ復帰時にスリープ防止を再取得
     document.addEventListener('visibilitychange', () => {
         if (wakeLock !== null && document.visibilityState === 'visible') {
             requestWakeLock();
         }
     });
 
-    // 追加・修正箇所: 起動時に自動スクロールを試行
     window.addEventListener('load', () => {
         setTimeout(() => { window.scrollTo(0, 40); }, 300);
     });
