@@ -188,22 +188,31 @@
 
 <script>
 /**
- * @description: クロック更新、設定の保存、およびスリープ防止(Wake Lock)ロジック。
+ * @description: クロック更新、設定の保存、およびiOS Safari対応の強化版Wake Lockロジック。
+ * 修正内容:
+ * - WakeLock自動再取得
+ * - resize/pageshow対応
+ * - 定期再取得（iOS安定化）
+ * - 多重取得防止
  */
 (function() {
+
     const clockWrapper = document.getElementById('clock-wrapper');
     const settingsWindow = document.getElementById('settings-window');
     const timeDisplay = document.getElementById('time-display');
     const dateDisplay = document.getElementById('date-display');
-    
+
     const colorSlider = document.getElementById('color-slider');
     const timeSizeSlider = document.getElementById('time-size-slider');
     const dateRatioSlider = document.getElementById('date-ratio-slider');
     const secondsCheck = document.getElementById('toggle-seconds');
     const dateCheck = document.getElementById('toggle-date');
 
-    // 追加・修正箇所: WakeLockの管理をより厳密化
+    // WakeLock管理
     let wakeLock = null;
+
+    // 追加・修正箇所: 多重取得防止フラグ
+    let wakeLockRequestPending = false;
 
     const savedSettings = JSON.parse(localStorage.getItem('clockSettings')) || {
         hue: 0,
@@ -225,130 +234,291 @@
     secondsCheck.checked = showSeconds;
     dateCheck.checked = showDate;
 
-    // 追加・修正箇所: iOSで確実に動作させるためのリクエスト関数
+    /**
+     * 追加・修正箇所:
+     * 安定化されたWakeLock取得関数
+     */
     async function requestWakeLock() {
-        if ('wakeLock' in navigator) {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Wake Lock is active');
-                
-                // 解除されたら再取得フラグを立てる
-                wakeLock.addEventListener('release', () => {
-                    console.log('Wake Lock released');
-                    wakeLock = null;
-                });
-            } catch (err) {
-                console.error(`${err.name}, ${err.message}`);
+
+        if (!('wakeLock' in navigator)) return;
+
+        // 非表示時は取得しない
+        if (document.visibilityState !== 'visible') return;
+
+        // 多重防止
+        if (wakeLockRequestPending) return;
+
+        wakeLockRequestPending = true;
+
+        try {
+
+            // 既存があれば解放（iOSバグ対策）
+            if (wakeLock) {
+                try {
+                    await wakeLock.release();
+                } catch(e) {}
+                wakeLock = null;
             }
+
+            wakeLock = await navigator.wakeLock.request('screen');
+
+            console.log("WakeLock acquired");
+
+            wakeLock.addEventListener('release', () => {
+
+                console.log("WakeLock released");
+
+                wakeLock = null;
+
+                // 自動再取得
+                if (document.visibilityState === 'visible') {
+                    requestWakeLock();
+                }
+
+            });
+
+        } catch (err) {
+
+            console.log("WakeLock error:", err);
+
+        } finally {
+
+            wakeLockRequestPending = false;
+
         }
     }
 
     function saveToStorage() {
-        const settings = { 
-            hue: currentHue, 
+
+        const settings = {
+            hue: currentHue,
             timeSize: currentTimeSize,
             dateRatio: currentDateRatio,
-            showSeconds: showSeconds, 
-            showDate: showDate 
+            showSeconds: showSeconds,
+            showDate: showDate
         };
+
         localStorage.setItem('clockSettings', JSON.stringify(settings));
     }
 
     function applyStyles() {
+
         const color = `hsl(${currentHue}, 100%, 50%)`;
+
         timeDisplay.style.color = color;
         dateDisplay.style.color = color;
+
         timeDisplay.style.fontSize = `${currentTimeSize}vw`;
-        const calculatedDateSize = (currentTimeSize * currentDateRatio) / 100;
-        dateDisplay.style.fontSize = `${calculatedDateSize}vw`;
+
+        const calculatedDateSize =
+            (currentTimeSize * currentDateRatio) / 100;
+
+        dateDisplay.style.fontSize =
+            `${calculatedDateSize}vw`;
     }
 
     function update() {
+
         const now = new Date();
+
         if (showDate) {
-            const days = ['日', '月', '火', '水', '木', '金', '土'];
-            dateDisplay.textContent = `${now.getMonth() + 1}月${now.getDate()}日(${days[now.getDay()]})`;
+
+            const days =
+                ['日','月','火','水','木','金','土'];
+
+            dateDisplay.textContent =
+                `${now.getMonth()+1}月${now.getDate()}日(${days[now.getDay()]})`;
+
             dateDisplay.style.display = 'block';
+
         } else {
+
             dateDisplay.style.display = 'none';
+
         }
 
-        const h = String(now.getHours()).padStart(2, '0');
-        const m = String(now.getMinutes()).padStart(2, '0');
-        const s = String(now.getSeconds()).padStart(2, '0');
-        const colonHtml = '<span class="colon">:</span>';
-        
-        let html = `<span class="time-part hour">${h}</span>${colonHtml}<span class="time-part min">${m}</span>`;
+        const h =
+            String(now.getHours()).padStart(2,'0');
+
+        const m =
+            String(now.getMinutes()).padStart(2,'0');
+
+        const s =
+            String(now.getSeconds()).padStart(2,'0');
+
+        const colonHtml =
+            '<span class="colon">:</span>';
+
+        let html =
+            `<span class="time-part hour">${h}</span>${colonHtml}<span class="time-part min">${m}</span>`;
+
         if (showSeconds) {
-            html += `${colonHtml}<span class="time-part sec">${s}</span>`;
+
+            html +=
+                `${colonHtml}<span class="time-part sec">${s}</span>`;
+
         }
+
         timeDisplay.innerHTML = html;
     }
 
-    // 修正箇所: iOSで確実な発火を狙い touchstart を使用。clickイベントも互換性のため維持
     const handleInteraction = (e) => {
+
         if (settingsWindow.contains(e.target)) return;
-        
-        // 追加・修正箇所: ユーザー操作をきっかけにWakeLockを要求
-        if (!wakeLock) {
-            requestWakeLock();
-        }
-        
-        settingsWindow.style.display = settingsWindow.style.display === 'block' ? 'none' : 'block';
+
+        requestWakeLock();
+
+        settingsWindow.style.display =
+            settingsWindow.style.display === 'block'
+                ? 'none'
+                : 'block';
     };
 
-    clockWrapper.addEventListener('touchstart', (e) => {
-        handleInteraction(e);
-    }, { passive: true });
+    clockWrapper.addEventListener(
+        'touchstart',
+        handleInteraction,
+        { passive:true }
+    );
 
-    clockWrapper.addEventListener('click', (e) => {
-        // touchstartがサポートされていない環境用のフォールバック
-        handleInteraction(e);
-    });
+    clockWrapper.addEventListener(
+        'click',
+        handleInteraction
+    );
 
-    document.addEventListener('visibilitychange', () => {
-        if (wakeLock === null && document.visibilityState === 'visible') {
-            requestWakeLock();
+    /**
+     * 追加・修正箇所:
+     * visibilitychange対応
+     */
+    document.addEventListener(
+        'visibilitychange',
+        () => {
+
+            if (
+                document.visibilityState === 'visible'
+            ) {
+                requestWakeLock();
+            }
+
         }
-    });
+    );
 
-    window.addEventListener('load', () => {
-        setTimeout(() => { window.scrollTo(0, 40); }, 300);
-    });
+    /**
+     * 追加・修正箇所:
+     * resize対応（iOSアドレスバー対策）
+     */
+    window.addEventListener(
+        'resize',
+        requestWakeLock
+    );
 
-    colorSlider.addEventListener('input', (e) => {
-        currentHue = e.target.value;
-        applyStyles();
-        saveToStorage();
-    });
+    /**
+     * 追加・修正箇所:
+     * pageshow対応（復帰対策）
+     */
+    window.addEventListener(
+        'pageshow',
+        requestWakeLock
+    );
 
-    timeSizeSlider.addEventListener('input', (e) => {
-        currentTimeSize = e.target.value;
-        applyStyles();
-        saveToStorage();
-    });
+    /**
+     * 追加・修正箇所:
+     * 定期再取得（最重要）
+     */
+    setInterval(
+        requestWakeLock,
+        10000
+    );
 
-    dateRatioSlider.addEventListener('input', (e) => {
-        currentDateRatio = e.target.value;
-        applyStyles();
-        saveToStorage();
-    });
+    window.addEventListener(
+        'load',
+        () => {
 
-    secondsCheck.addEventListener('change', (e) => {
-        showSeconds = e.target.checked;
-        saveToStorage();
-        update();
-    });
+            setTimeout(
+                () => window.scrollTo(0,40),
+                300
+            );
 
-    dateCheck.addEventListener('change', (e) => {
-        showDate = e.target.checked;
-        saveToStorage();
-        update();
-    });
+            // 初回取得
+            requestWakeLock();
+
+        }
+    );
+
+    colorSlider.addEventListener(
+        'input',
+        e => {
+
+            currentHue = e.target.value;
+
+            applyStyles();
+
+            saveToStorage();
+
+        }
+    );
+
+    timeSizeSlider.addEventListener(
+        'input',
+        e => {
+
+            currentTimeSize =
+                e.target.value;
+
+            applyStyles();
+
+            saveToStorage();
+
+        }
+    );
+
+    dateRatioSlider.addEventListener(
+        'input',
+        e => {
+
+            currentDateRatio =
+                e.target.value;
+
+            applyStyles();
+
+            saveToStorage();
+
+        }
+    );
+
+    secondsCheck.addEventListener(
+        'change',
+        e => {
+
+            showSeconds =
+                e.target.checked;
+
+            saveToStorage();
+
+            update();
+
+        }
+    );
+
+    dateCheck.addEventListener(
+        'change',
+        e => {
+
+            showDate =
+                e.target.checked;
+
+            saveToStorage();
+
+            update();
+
+        }
+    );
 
     applyStyles();
-    setInterval(update, 1000);
+
+    setInterval(update,1000);
+
     update();
+
 })();
 </script>
 
