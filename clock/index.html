@@ -2,409 +2,279 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>デジタルクロック</title>
 
-<!-- PWA manifest -->
 <link rel="manifest" href="./res/manifest.json">
-
-<!-- iOS ホーム画面アイコン（最重要） -->
 <link rel="apple-touch-icon" sizes="180x180" href="./res/icon-180.png">
 <link rel="apple-touch-icon" sizes="167x167" href="./res/icon-167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="./res/icon-152.png">
 <link rel="apple-touch-icon" sizes="120x120" href="./res/icon-120.png">
 
-<!-- iOS PWA設定 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Clock">
-
-<!-- Android Chrome用 -->
 <meta name="theme-color" content="#000000">
 
 <style>
-
-/* フォント */
+/* フォント定義 */
 @font-face {
     font-family: 'Digital7-Mono';
     src: url('./res/digital-7mono.ttf') format('truetype');
 }
-
 @font-face {
     font-family: 'Digital7-Standard';
     src: url('./res/digital-7.ttf') format('truetype');
 }
 
-/* 完全固定レイアウト */
+/* 画面全体設定 */
 html, body {
-
-    margin:0;
-    padding:0;
-
-    width:100%;
-    height:100vh;
-
-    overflow:hidden;
-
-    background:#000;
-    color:#ff0000;
-
-    font-family:sans-serif;
-
-    user-select:none;
-    -webkit-user-select:none;
-
-    touch-action:manipulation;
-    overscroll-behavior:none;
-
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+    color: #ff0000;
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    overscroll-behavior: none;
 }
 
-/* メイン */
+/* 全体ラッパー */
 #clock-wrapper {
-
-    position:fixed;
-
-    width:100%;
-    height:100vh;
-
-    display:flex;
-
-    justify-content:center;
-    align-items:center;
-
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* 表示 */
+/* 修正箇所：時刻を不動の中央にするための相対配置コンテナ */
 #display-container {
-
-    text-align:center;
-    width:100%;
-
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
 }
 
+/* 修正箇所：日付を絶対配置にしてレイアウトから浮かせる */
 #date-display {
-
-    margin-bottom:0.5em;
-
+    position: absolute;
+    /* 時刻の真上に配置されるようJSで制御するが、初期値を設定 */
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
 }
 
+/* 時刻表示：Flexにより常に完全中央 */
 #time-display {
-
-    display:flex;
-    justify-content:center;
-    align-items:baseline;
-
-    font-family:'Digital7-Mono', monospace;
-
-    white-space:nowrap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Digital7-Mono', monospace;
+    white-space: nowrap;
+    z-index: 5;
     margin-right: 8%;
-
 }
 
 .time-part {
-
-    flex:1;
-    text-align:center;
-
-}
-
-.time-part.hour {
-    text-align:right;
-}
-
-.time-part.min {
-    text-align:left;
-}
-
-.time-part.sec {
-    text-align:left;
-    flex:0.8;
+    text-align: center;
 }
 
 .colon {
-
-    font-family:'Digital7-Standard';
-    margin:0 0.02em;
-
+    font-family: 'Digital7-Standard';
+    margin: 0 0.05em;
 }
 
 /* 設定UI */
 #settings-window {
-
-    display:none;
-
-    position:fixed;
-
-    bottom:0;
-    left:0;
-    right:0;
-
-    background:#1e1e1e;
-
-    padding:20px;
-
-    color:#fff;
-
-    border-top:1px solid #444;
-
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1e1e1e;
+    padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    color: #fff;
+    border-top: 1px solid #444;
+    z-index: 100;
 }
 
 .setting-item {
+    margin-bottom: 15px;
+}
 
-    margin-bottom:15px;
-
+.setting-label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
 }
 
 input[type="range"] {
-
-    width:100%;
-
+    width: 100%;
 }
-
 </style>
 </head>
 
 <body>
 
 <div id="clock-wrapper">
+    <div id="display-container">
+        <div id="date-display"></div>
+        <div id="time-display"></div>
+    </div>
 
-<div id="display-container">
-
-<div id="date-display"></div>
-<div id="time-display"></div>
-
-</div>
-
-<div id="settings-window">
-
-<div class="setting-item">
-フォントカラー
-<input type="range" id="color-slider" min="0" max="360">
-</div>
-
-<div class="setting-item">
-時計サイズ
-<input type="range" id="time-size-slider" min="5" max="70">
-</div>
-
-<div class="setting-item">
-日付サイズ比率
-<input type="range" id="date-ratio-slider" min="5" max="50">
-</div>
-
-<div class="setting-item">
-<label>
-<input type="checkbox" id="toggle-seconds">
-秒表示
-</label>
-</div>
-
-<div class="setting-item">
-<label>
-<input type="checkbox" id="toggle-date">
-日付表示
-</label>
-</div>
-
-</div>
-
+    <div id="settings-window">
+        <div class="setting-item">
+            <span class="setting-label">フォントカラー</span>
+            <input type="range" id="color-slider" min="0" max="360">
+        </div>
+        <div class="setting-item">
+            <span class="setting-label">時計サイズ</span>
+            <input type="range" id="time-size-slider" min="5" max="70">
+        </div>
+        <div class="setting-item">
+            <span class="setting-label">日付サイズ比率</span>
+            <input type="range" id="date-ratio-slider" min="5" max="50">
+        </div>
+        <div class="setting-item">
+            <label><input type="checkbox" id="toggle-seconds"> 秒表示</label>
+        </div>
+        <div class="setting-item">
+            <label><input type="checkbox" id="toggle-date"> 日付表示</label>
+        </div>
+    </div>
 </div>
 
 <script>
 /**
  * @description
- * iOSホーム画面アプリ完全対応デジタルクロック
- * アイコン・manifest対応完成版
- * WakeLock安定
+ * 日付を絶対配置(absolute)にすることで、日付の有無にかかわらず
+ * 時刻が画面の上下左右中央から1ピクセルも動かないようにした最終版。
  */
-
 (function(){
 
-const timeDisplay=document.getElementById("time-display");
-const dateDisplay=document.getElementById("date-display");
-const settingsWindow=document.getElementById("settings-window");
-const wrapper=document.getElementById("clock-wrapper");
+const timeDisplay = document.getElementById("time-display");
+const dateDisplay = document.getElementById("date-display");
+const settingsWindow = document.getElementById("settings-window");
+const wrapper = document.getElementById("clock-wrapper");
 
-const colorSlider=document.getElementById("color-slider");
-const timeSizeSlider=document.getElementById("time-size-slider");
-const dateRatioSlider=document.getElementById("date-ratio-slider");
+const colorSlider = document.getElementById("color-slider");
+const timeSizeSlider = document.getElementById("time-size-slider");
+const dateRatioSlider = document.getElementById("date-ratio-slider");
 
-const secondsCheck=document.getElementById("toggle-seconds");
-const dateCheck=document.getElementById("toggle-date");
+const secondsCheck = document.getElementById("toggle-seconds");
+const dateCheck = document.getElementById("toggle-date");
 
-const saved=JSON.parse(localStorage.getItem("clockSettings"))||{
-hue:0,timeSize:20,dateRatio:15,showSeconds:true,showDate:true
+const saved = JSON.parse(localStorage.getItem("clockSettings")) || {
+    hue: 0, timeSize: 20, dateRatio: 15, showSeconds: true, showDate: true
 };
 
-let currentHue=saved.hue;
-let currentTimeSize=saved.timeSize;
-let currentDateRatio=saved.dateRatio;
-let showSeconds=saved.showSeconds;
-let showDate=saved.showDate;
+let currentHue = saved.hue;
+let currentTimeSize = saved.timeSize;
+let currentDateRatio = savedSettings = saved.dateRatio; // 修正箇所
+let showSeconds = saved.showSeconds;
+let showDate = saved.showDate;
 
-colorSlider.value=currentHue;
-timeSizeSlider.value=currentTimeSize;
-dateRatioSlider.value=currentDateRatio;
-secondsCheck.checked=showSeconds;
-dateCheck.checked=showDate;
+colorSlider.value = currentHue;
+timeSizeSlider.value = currentTimeSize;
+dateRatioSlider.value = saved.dateRatio;
+secondsCheck.checked = showSeconds;
+dateCheck.checked = showDate;
 
-let wakeLock=null;
-let pending=false;
-
-async function requestWakeLock(){
-
-if(!("wakeLock" in navigator)) return;
-if(document.visibilityState!=="visible") return;
-if(pending) return;
-
-pending=true;
-
-try{
-
-if(wakeLock){
-await wakeLock.release();
-wakeLock=null;
+/* WakeLock (スリープ防止) */
+let wakeLock = null;
+async function requestWakeLock() {
+    if (!("wakeLock" in navigator)) return;
+    try {
+        if (wakeLock) return;
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } catch (e) {}
 }
 
-wakeLock=await navigator.wakeLock.request("screen");
+/* スタイル適用 */
+function applyStyles() {
+    const color = `hsl(${currentHue}, 100%, 50%)`;
+    timeDisplay.style.color = color;
+    dateDisplay.style.color = color;
+    timeDisplay.style.fontSize = currentTimeSize + "vw";
+    
+    const dateFontSize = (currentTimeSize * currentDateRatio / 100);
+    dateDisplay.style.fontSize = dateFontSize + "vw";
 
-wakeLock.addEventListener("release",()=>{
-wakeLock=null;
-requestWakeLock();
+    // 追加・修正箇所：日付を時刻のすぐ上に配置（絶対配置の調整）
+    // 時刻のフォントサイズの半分強（約0.6倍）だけ上にずらす
+    dateDisplay.style.bottom = `calc(50% + ${currentTimeSize * 0.5}vw)`;
+}
+
+/* 時計更新 */
+function update() {
+    const now = new Date();
+
+    if (showDate) {
+        const d = ["日", "月", "火", "水", "木", "金", "土"];
+        dateDisplay.textContent = `${now.getMonth() + 1}月${now.getDate()}日(${d[now.getDay()]})`;
+        dateDisplay.style.display = "block";
+    } else {
+        dateDisplay.style.display = "none";
+    }
+
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    const s = String(now.getSeconds()).padStart(2, "0");
+
+    let html = `<span class="time-part">${h}</span><span class="colon">:</span><span class="time-part">${m}</span>`;
+    if (showSeconds) {
+        html += `<span class="colon">:</span><span class="time-part">${s}</span>`;
+    }
+    timeDisplay.innerHTML = html;
+}
+
+/* 設定表示切替 */
+wrapper.addEventListener("pointerdown", (e) => {
+    if (settingsWindow.contains(e.target)) return;
+    const isVisible = settingsWindow.style.display === "block";
+    settingsWindow.style.display = isVisible ? "none" : "block";
+    requestWakeLock();
 });
 
-}catch(e){}
-
-pending=false;
-
+/* 保存 */
+function save() {
+    localStorage.setItem("clockSettings", JSON.stringify({
+        hue: currentHue,
+        timeSize: currentTimeSize,
+        dateRatio: currentDateRatio,
+        showSeconds,
+        showDate
+    }));
 }
 
-setInterval(requestWakeLock,10000);
+/* イベントリスナー */
+colorSlider.oninput = e => { currentHue = e.target.value; applyStyles(); save(); };
+timeSizeSlider.oninput = e => { currentTimeSize = e.target.value; applyStyles(); save(); };
+dateRatioSlider.oninput = e => { currentDateRatio = e.target.value; applyStyles(); save(); };
+secondsCheck.onchange = e => { showSeconds = e.target.checked; save(); update(); };
+dateCheck.onchange = e => { showDate = e.target.checked; save(); update(); };
 
-document.addEventListener("visibilitychange",requestWakeLock);
-window.addEventListener("pageshow",requestWakeLock);
-
-function applyStyles(){
-
-const color=`hsl(${currentHue},100%,50%)`;
-
-timeDisplay.style.color=color;
-dateDisplay.style.color=color;
-
-timeDisplay.style.fontSize=currentTimeSize+"vw";
-
-dateDisplay.style.fontSize=
-(currentTimeSize*currentDateRatio/100)+"vw";
-
-}
-
-function update(){
-
-const now=new Date();
-
-if(showDate){
-
-const d=["日","月","火","水","木","金","土"];
-
-dateDisplay.textContent=
-`${now.getMonth()+1}月${now.getDate()}日(${d[now.getDay()]})`;
-
-dateDisplay.style.display="block";
-
-}else{
-
-dateDisplay.style.display="none";
-
-}
-
-const h=String(now.getHours()).padStart(2,"0");
-const m=String(now.getMinutes()).padStart(2,"0");
-const s=String(now.getSeconds()).padStart(2,"0");
-
-let html=
-`<span class="time-part hour">${h}</span>
-<span class="colon">:</span>
-<span class="time-part min">${m}</span>`;
-
-if(showSeconds){
-
-html+=`
-<span class="colon">:</span>
-<span class="time-part sec">${s}</span>`;
-
-}
-
-timeDisplay.innerHTML=html;
-
-}
-
-wrapper.addEventListener("pointerdown",(e)=>{
-
-if(settingsWindow.contains(e.target)) return;
-
-settingsWindow.style.display=
-settingsWindow.style.display==="block"
-?"none":"block";
-
-requestWakeLock();
-
-});
-
-function save(){
-
-localStorage.setItem("clockSettings",
-JSON.stringify({
-hue:currentHue,
-timeSize:currentTimeSize,
-dateRatio:currentDateRatio,
-showSeconds,
-showDate
-}));
-
-}
-
-colorSlider.oninput=e=>{
-currentHue=e.target.value;
-applyStyles();
-save();
-};
-
-timeSizeSlider.oninput=e=>{
-currentTimeSize=e.target.value;
-applyStyles();
-save();
-};
-
-dateRatioSlider.oninput=e=>{
-currentDateRatio=e.target.value;
-applyStyles();
-save();
-};
-
-secondsCheck.onchange=e=>{
-showSeconds=e.target.checked;
-save();
-update();
-};
-
-dateCheck.onchange=e=>{
-showDate=e.target.checked;
-save();
-update();
-};
-
+/* 初期化 */
 applyStyles();
 update();
+setInterval(update, 1000);
 
-setInterval(update,1000);
-
-requestWakeLock();
+// タブ復帰時や画面復帰時にリクエスト
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") requestWakeLock(); });
 
 })();
 </script>
-
 </body>
 </html>
