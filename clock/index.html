@@ -77,6 +77,7 @@ html, body {
     display: flex;    
     justify-content: center;
     align-items: center;
+    top: 4%;
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
@@ -121,7 +122,7 @@ html, body {
 #settings-window {
     display: none;
     position: absolute;
-    bottom: 30px;
+    bottom: 10%;
     max-width: 500px;
     width: calc(100vw - 80px);
     height: 150px;
@@ -278,12 +279,6 @@ function applyStyles() {
     const dateFontSize = (currentTimeSize * currentDateRatio / 100);
     dateDisplay.style.fontSize = dateFontSize + unit;
 
-    // 縦向きの時だけ bottom を動的に計算（横向きはCSSのtopで制御するため）
-    if(window.matchMedia("(orientation: portrait)").matches) {
-        dateDisplay.style.setProperty("top", "20%", "important");
-    } else {
-        dateDisplay.style.setProperty("top", "4%", "important");
-    }
 }
 
 /* 時計更新 */
