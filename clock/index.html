@@ -55,6 +55,30 @@
             /* 追加・修正箇所: コンテナ自体の幅を確保 */
             width: 100%;
         }
+        /* 追加・修正箇所: iPhoneを横向きにした時（Landscape）の専用設定 */
+        @media screen and (orientation: landscape) {
+            #clock-wrapper {
+                height: 100vh;
+                /* 余計なマージンを排除して画面を広く使う */
+                padding: 0;
+            }
+
+            #display-container {
+                height: 100vh; /* 高さを画面いっぱいに確保 */                
+                padding: 40px;
+                box-sizing: border-box;
+            }
+
+            #date-display {
+                /* 横向き時は日付がはみ出やすいため、上下のマージンを詰める */
+                margin-bottom: 0.2em;
+            }
+
+            #time-display {
+                /* 横向き時は右の余白を少し詰めるとバランスが良くなります */
+                padding-right: 4%; 
+            }
+        }
 
         #date-display {
             margin-bottom: 0.5em;
