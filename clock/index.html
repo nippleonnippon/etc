@@ -328,12 +328,31 @@ dateCheck.onchange = e => { showDate = e.target.checked; update(); save(); };
 /* 追加・修正箇所：向きの変更を監視して設定をリロード */
 window.matchMedia("(orientation: portrait)").addEventListener("change", loadActiveSettings);
 
-wrapper.addEventListener("pointerdown", (e) => {
-    if (settingsWindow.contains(e.target)) return;
-    settingsWindow.style.display = settingsWindow.style.display === "block" ? "none" : "block";
-    requestWakeLock();
-});
+/* 追加・修正箇所：ダブルタップ判定の修正 */
+let lastTap = 0;
 
+wrapper.addEventListener("pointerdown", (e) => {
+    // 設定ウィンドウ内の操作なら何もしない
+    if (settingsWindow.contains(e.target)) return;
+
+    const isVisible = settingsWindow.style.display === "block";
+
+    if (isVisible) {
+        // 設定が開いている時は、外側を1回タップするだけで閉じる
+        settingsWindow.style.display = "none";
+    } else {
+        // 設定が閉じている時だけダブルタップ判定を行う
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+
+        if (tapLength < 300 && tapLength > 0) {
+            settingsWindow.style.display = "block";
+            requestWakeLock();
+            e.preventDefault();
+        }
+        lastTap = currentTime;
+    }
+});
 /* 初期化 */
 loadActiveSettings();
 setInterval(update, 1000);
