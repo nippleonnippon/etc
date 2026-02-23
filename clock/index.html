@@ -52,30 +52,27 @@
 
         #display-container {
             text-align: center;
-            /* 追加・修正箇所: コンテナ自体の幅を確保 */
             width: 100%;
         }
+
         /* 追加・修正箇所: iPhoneを横向きにした時（Landscape）の専用設定 */
         @media screen and (orientation: landscape) {
             #clock-wrapper {
                 height: 100vh;
-                /* 余計なマージンを排除して画面を広く使う */
                 padding: 0;
             }
 
             #display-container {
-                height: 100vh; /* 高さを画面いっぱいに確保 */                
+                height: 100vh;
                 padding-top: 80px;
                 box-sizing: border-box;
             }
 
             #date-display {
-                /* 横向き時は日付がはみ出やすいため、上下のマージンを詰める */
                 margin-bottom: 0.2em;
             }
 
             #time-display {
-                /* 横向き時は右の余白を少し詰めるとバランスが良くなります */
                 padding-right: 4%; 
             }
         }
@@ -85,7 +82,6 @@
         }
 
         #time-display {
-            /* 追加・修正箇所: コロンを中央にするためのFlexレイアウト設定 */
             display: flex;
             justify-content: center;
             align-items: baseline;
@@ -96,20 +92,17 @@
             padding-right: 8%;
         }
 
-        /* 追加・修正箇所: 時・分・秒の各ブロックの幅を均等化してコロンを中央に固定 */
         .time-part {
             flex: 1;
             text-align: center;
         }
-        /* 時（左側）は右寄せ、分（右側）は左寄せにすることでコロンを挟む */
         .time-part.hour { text-align: right; }
         .time-part.min  { text-align: left; }
-        .time-part.sec  { text-align: left; flex: 0.8; } /* 秒は少し幅を抑える */
+        .time-part.sec  { text-align: left; flex: 0.8; }
 
         .colon {
             font-family: 'Digital7-Standard', sans-serif;
             margin: 0 0.02em;
-            /* 追加・修正箇所: コロン自体の幅を固定的に扱う */
             flex-shrink: 0;
             text-align: center;
         }
@@ -195,7 +188,7 @@
 
 <script>
 /**
- * @description: クロック更新、設定の保存、およびコロン中央配置ロジック。
+ * @description: クロック更新、設定の保存、およびスリープ防止(Wake Lock)ロジック。
  */
 (function() {
     const clockWrapper = document.getElementById('clock-wrapper');
@@ -209,6 +202,7 @@
     const secondsCheck = document.getElementById('toggle-seconds');
     const dateCheck = document.getElementById('toggle-date');
 
+    // 追加・修正箇所: WakeLockの管理をより厳密化
     let wakeLock = null;
 
     const savedSettings = JSON.parse(localStorage.getItem('clockSettings')) || {
@@ -231,10 +225,18 @@
     secondsCheck.checked = showSeconds;
     dateCheck.checked = showDate;
 
+    // 追加・修正箇所: iOSで確実に動作させるためのリクエスト関数
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try {
                 wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock is active');
+                
+                // 解除されたら再取得フラグを立てる
+                wakeLock.addEventListener('release', () => {
+                    console.log('Wake Lock released');
+                    wakeLock = null;
+                });
             } catch (err) {
                 console.error(`${err.name}, ${err.message}`);
             }
@@ -274,28 +276,38 @@
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         const s = String(now.getSeconds()).padStart(2, '0');
-        
         const colonHtml = '<span class="colon">:</span>';
         
-        /* 追加・修正箇所: コロンを中央にするためのHTML構造に変更 */
-        /* 時(hour)を右、分(min)を左に寄せることで中央のコロンが芯に来るようにします */
         let html = `<span class="time-part hour">${h}</span>${colonHtml}<span class="time-part min">${m}</span>`;
-        
         if (showSeconds) {
             html += `${colonHtml}<span class="time-part sec">${s}</span>`;
         }
-        
         timeDisplay.innerHTML = html;
     }
 
-    clockWrapper.addEventListener('click', (e) => {
+    // 修正箇所: iOSで確実な発火を狙い touchstart を使用。clickイベントも互換性のため維持
+    const handleInteraction = (e) => {
         if (settingsWindow.contains(e.target)) return;
-        if (!wakeLock) requestWakeLock();
+        
+        // 追加・修正箇所: ユーザー操作をきっかけにWakeLockを要求
+        if (!wakeLock) {
+            requestWakeLock();
+        }
+        
         settingsWindow.style.display = settingsWindow.style.display === 'block' ? 'none' : 'block';
+    };
+
+    clockWrapper.addEventListener('touchstart', (e) => {
+        handleInteraction(e);
+    }, { passive: true });
+
+    clockWrapper.addEventListener('click', (e) => {
+        // touchstartがサポートされていない環境用のフォールバック
+        handleInteraction(e);
     });
 
     document.addEventListener('visibilitychange', () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
+        if (wakeLock === null && document.visibilityState === 'visible') {
             requestWakeLock();
         }
     });
