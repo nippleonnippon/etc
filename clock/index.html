@@ -26,12 +26,10 @@
     font-family: 'Digital7-Standard';
     src: url('./res/digital-7.ttf') format('truetype');
 }
-
 @font-face {
     font-family: 'Digital';
     src: url('./res/digital-7.regular.ttf') format('truetype');
 }
-
 @font-face {
     font-family: 'Digital-mono';
     src: url('./res/digital-7.mono.ttf') format('truetype');
@@ -63,7 +61,6 @@ html, body {
     align-items: center;
 }
 
-/* 修正箇所：時刻を不動の中央にするための相対配置コンテナ */
 #display-container {
     position: relative;
     display: flex;
@@ -74,10 +71,8 @@ html, body {
     margin-bottom: 10%;
 }
 
-/* 修正箇所：日付を絶対配置にしてレイアウトから浮かせる */
 #date-display {
     position: absolute;
-    /* 時刻の真上に配置されるようJSで制御するが、初期値を設定 */
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
@@ -86,12 +81,11 @@ html, body {
     margin-bottom: 4%;
 }
 
-/* 時刻表示：Flexにより常に完全中央 */
 #time-display {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Digital-mono', monospace;
+    /* 追加・修正箇所：初期フォントをJSで制御するためここでは指定しない */
     white-space: nowrap;
     z-index: 5;
     margin-right: 0%;
@@ -159,6 +153,9 @@ input[type="range"] {
             <input type="range" id="date-ratio-slider" min="5" max="50">
         </div>
         <div class="setting-item">
+            <label><input type="checkbox" id="toggle-mono"> mono</label>
+        </div>
+        <div class="setting-item">
             <label><input type="checkbox" id="toggle-seconds"> 秒表示</label>
         </div>
         <div class="setting-item">
@@ -168,11 +165,6 @@ input[type="range"] {
 </div>
 
 <script>
-/**
- * @description
- * 日付を絶対配置(absolute)にすることで、日付の有無にかかわらず
- * 時刻が画面の上下左右中央から1ピクセルも動かないようにした最終版。
- */
 (function(){
 
 const timeDisplay = document.getElementById("time-display");
@@ -184,22 +176,25 @@ const colorSlider = document.getElementById("color-slider");
 const timeSizeSlider = document.getElementById("time-size-slider");
 const dateRatioSlider = document.getElementById("date-ratio-slider");
 
+const monoCheck = document.getElementById("toggle-mono"); // 追加・修正箇所
 const secondsCheck = document.getElementById("toggle-seconds");
 const dateCheck = document.getElementById("toggle-date");
 
 const saved = JSON.parse(localStorage.getItem("clockSettings")) || {
-    hue: 0, timeSize: 20, dateRatio: 15, showSeconds: true, showDate: true
+    hue: 0, timeSize: 20, dateRatio: 15, isMono: true, showSeconds: true, showDate: true
 };
 
 let currentHue = saved.hue;
 let currentTimeSize = saved.timeSize;
-let currentDateRatio = savedSettings = saved.dateRatio; // 修正箇所
+let currentDateRatio = saved.dateRatio; 
+let isMono = saved.isMono !== undefined ? saved.isMono : true; // 追加・修正箇所
 let showSeconds = saved.showSeconds;
 let showDate = saved.showDate;
 
 colorSlider.value = currentHue;
 timeSizeSlider.value = currentTimeSize;
-dateRatioSlider.value = saved.dateRatio;
+dateRatioSlider.value = currentDateRatio;
+monoCheck.checked = isMono; // 追加・修正箇所
 secondsCheck.checked = showSeconds;
 dateCheck.checked = showDate;
 
@@ -221,11 +216,12 @@ function applyStyles() {
     dateDisplay.style.color = color;
     timeDisplay.style.fontSize = currentTimeSize + "vw";
     
+    // 追加・修正箇所：フォントの切り替え
+    timeDisplay.style.fontFamily = isMono ? "'Digital-mono', monospace" : "'Digital', sans-serif";
+
     const dateFontSize = (currentTimeSize * currentDateRatio / 100);
     dateDisplay.style.fontSize = dateFontSize + "vw";
 
-    // 追加・修正箇所：日付を時刻のすぐ上に配置（絶対配置の調整）
-    // 時刻のフォントサイズの半分強（約0.6倍）だけ上にずらす
     dateDisplay.style.bottom = `calc(50% + ${currentTimeSize * 0.5}vw)`;
 }
 
@@ -266,6 +262,7 @@ function save() {
         hue: currentHue,
         timeSize: currentTimeSize,
         dateRatio: currentDateRatio,
+        isMono: isMono, // 追加・修正箇所
         showSeconds,
         showDate
     }));
@@ -275,6 +272,8 @@ function save() {
 colorSlider.oninput = e => { currentHue = e.target.value; applyStyles(); save(); };
 timeSizeSlider.oninput = e => { currentTimeSize = e.target.value; applyStyles(); save(); };
 dateRatioSlider.oninput = e => { currentDateRatio = e.target.value; applyStyles(); save(); };
+// 追加・修正箇所：mono切り替え
+monoCheck.onchange = e => { isMono = e.target.checked; applyStyles(); save(); };
 secondsCheck.onchange = e => { showSeconds = e.target.checked; save(); update(); };
 dateCheck.onchange = e => { showDate = e.target.checked; save(); update(); };
 
@@ -283,7 +282,6 @@ applyStyles();
 update();
 setInterval(update, 1000);
 
-// タブ復帰時や画面復帰時にリクエスト
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") requestWakeLock(); });
 
 })();
