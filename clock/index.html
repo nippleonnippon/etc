@@ -1,523 +1,455 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>デジタルクロック</title>
-    <style>
-        /* 追加・修正箇所: 2種類のデジタルフォントを定義 */
-        @font-face {
-            font-family: 'Digital7-Mono';
-            src: url('./res/digital-7mono.ttf') format('truetype');
-        }
-        @font-face {
-            font-family: 'Digital7-Standard';
-            src: url('./res/digital-7.ttf') format('truetype');
-        }
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: calc(100vh + 40px);
-            background-color: #000;
-            color: #ff0000;
-            font-family: sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
+<title>デジタルクロック</title>
 
-        body::-webkit-scrollbar {
-            display: none;
-        }
+<style>
 
-        #clock-wrapper {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            box-sizing: border-box;
-            cursor: pointer;
-        }
+/* フォント */
+@font-face {
+    font-family: 'Digital7-Mono';
+    src: url('./res/digital-7mono.ttf') format('truetype');
+}
 
-        #spacer {
-            height: 40px;
-            width: 100%;
-        }
+@font-face {
+    font-family: 'Digital7-Standard';
+    src: url('./res/digital-7.ttf') format('truetype');
+}
 
-        #display-container {
-            text-align: center;
-            width: 100%;
-        }
+/* 完全固定レイアウト */
+html, body {
 
-        /* 追加・修正箇所: iPhoneを横向きにした時（Landscape）の専用設定 */
-        @media screen and (orientation: landscape) {
-            #clock-wrapper {
-                height: 100vh;
-                padding: 0;
-            }
+    margin:0;
+    padding:0;
 
-            #display-container {
-                height: 100vh;
-                padding-top: 80px;
-                box-sizing: border-box;
-            }
+    width:100%;
+    height:100vh;
 
-            #date-display {
-                margin-bottom: 0.2em;
-            }
+    overflow:hidden;
 
-            #time-display {
-                padding-right: 4%; 
-            }
-        }
+    background:#000;
+    color:#ff0000;
 
-        #date-display {
-            margin-bottom: 0.5em;
-        }
+    user-select:none;
+    -webkit-user-select:none;
 
-        #time-display {
-            display: flex;
-            justify-content: center;
-            align-items: baseline;
-            font-family: 'Digital7-Mono', monospace;
-            line-height: 1;
-            -webkit-text-size-adjust: 100%;
-            white-space: nowrap;
-            padding-right: 8%;
-        }
+    touch-action: manipulation;
+    overscroll-behavior: none;
 
-        .time-part {
-            flex: 1;
-            text-align: center;
-        }
-        .time-part.hour { text-align: right; }
-        .time-part.min  { text-align: left; }
-        .time-part.sec  { text-align: left; flex: 0.8; }
+}
 
-        .colon {
-            font-family: 'Digital7-Standard', sans-serif;
-            margin: 0 0.02em;
-            flex-shrink: 0;
-            text-align: center;
-        }
+/* メイン */
+#clock-wrapper {
 
-        #settings-window {
-            display: none;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: #1e1e1e;
-            padding: 20px;
-            box-sizing: border-box;
-            color: #fff;
-            border-top: 1px solid #444;
-            cursor: default;
-        }
+    position:fixed;
 
-        .setting-item {
-            margin-bottom: 15px;
-        }
+    width:100%;
+    height:100vh;
 
-        .setting-item label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
+    display:flex;
 
-        .switch-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
+    justify-content:center;
+    align-items:center;
 
-        input[type="range"] {
-            width: 100%;
-            cursor: pointer;
-        }
-    </style>
+}
+
+/* 表示 */
+#display-container {
+
+    text-align:center;
+    width:100%;
+
+}
+
+#date-display {
+
+    margin-bottom:0.5em;
+
+}
+
+#time-display {
+
+    display:flex;
+    justify-content:center;
+    align-items:baseline;
+
+    font-family:'Digital7-Mono', monospace;
+
+    white-space:nowrap;
+
+}
+
+.time-part {
+
+    flex:1;
+    text-align:center;
+
+}
+
+.time-part.hour {
+    text-align:right;
+}
+
+.time-part.min {
+    text-align:left;
+}
+
+.time-part.sec {
+    text-align:left;
+    flex:0.8;
+}
+
+.colon {
+
+    font-family:'Digital7-Standard';
+    margin:0 0.02em;
+
+}
+
+/* 設定UI */
+#settings-window {
+
+    display:none;
+
+    position:fixed;
+
+    bottom:0;
+    left:0;
+    right:0;
+
+    background:#1e1e1e;
+
+    padding:20px;
+
+    color:#fff;
+
+    border-top:1px solid #444;
+
+}
+
+.setting-item {
+
+    margin-bottom:15px;
+
+}
+
+input[type="range"] {
+
+    width:100%;
+
+}
+
+</style>
 </head>
+
 <body>
 
 <div id="clock-wrapper">
-    <div id="settings-window">
-        <div class="setting-item">
-            <label>フォントカラー (色相)</label>
-            <input type="range" id="color-slider" min="0" max="360" value="0">
-        </div>
 
-        <div class="setting-item">
-            <label>時計のサイズ (vw)</label>
-            <input type="range" id="time-size-slider" min="5" max="70" value="20">
-        </div>
+<div id="display-container">
 
-        <div class="setting-item">
-            <label>日付のサイズ比率 (%)</label>
-            <input type="range" id="date-ratio-slider" min="5" max="50" step="1" value="15">
-        </div>
-        
-        <div class="setting-item">
-            <label class="switch-row">
-                <input type="checkbox" id="toggle-seconds" checked> 秒数を表示
-            </label>
-        </div>
+<div id="date-display"></div>
+<div id="time-display"></div>
 
-        <div class="setting-item">
-            <label class="switch-row">
-                <input type="checkbox" id="toggle-date" checked> 日付を表示
-            </label>
-        </div>
-    </div>
-
-    <div id="display-container">
-        <div id="date-display"></div>
-        <div id="time-display"></div>
-    </div>
 </div>
 
-<div id="spacer"></div>
+<div id="settings-window">
+
+<div class="setting-item">
+フォントカラー
+<input type="range" id="color-slider" min="0" max="360">
+</div>
+
+<div class="setting-item">
+時計サイズ
+<input type="range" id="time-size-slider" min="5" max="70">
+</div>
+
+<div class="setting-item">
+日付サイズ比率
+<input type="range" id="date-ratio-slider" min="5" max="50">
+</div>
+
+<div class="setting-item">
+<label>
+<input type="checkbox" id="toggle-seconds">
+秒表示
+</label>
+</div>
+
+<div class="setting-item">
+<label>
+<input type="checkbox" id="toggle-date">
+日付表示
+</label>
+</div>
+
+</div>
+
+</div>
 
 <script>
 /**
- * @description: クロック更新、設定の保存、およびiOS Safari対応の強化版Wake Lockロジック。
- * 修正内容:
- * - WakeLock自動再取得
- * - resize/pageshow対応
- * - 定期再取得（iOS安定化）
- * - 多重取得防止
+ * @description
+ * iOSホーム画面アプリ専用 完全安定版デジタルクロック
+ * - WakeLock安定化
+ * - pointerdown UI制御
+ * - スクロール完全禁止
  */
-(function() {
 
-    const clockWrapper = document.getElementById('clock-wrapper');
-    const settingsWindow = document.getElementById('settings-window');
-    const timeDisplay = document.getElementById('time-display');
-    const dateDisplay = document.getElementById('date-display');
+(function(){
 
-    const colorSlider = document.getElementById('color-slider');
-    const timeSizeSlider = document.getElementById('time-size-slider');
-    const dateRatioSlider = document.getElementById('date-ratio-slider');
-    const secondsCheck = document.getElementById('toggle-seconds');
-    const dateCheck = document.getElementById('toggle-date');
+const timeDisplay =
+document.getElementById("time-display");
 
-    // WakeLock管理
-    let wakeLock = null;
+const dateDisplay =
+document.getElementById("date-display");
 
-    // 追加・修正箇所: 多重取得防止フラグ
-    let wakeLockRequestPending = false;
+const settingsWindow =
+document.getElementById("settings-window");
 
-    const savedSettings = JSON.parse(localStorage.getItem('clockSettings')) || {
-        hue: 0,
-        timeSize: 20,
-        dateRatio: 15,
-        showSeconds: true,
-        showDate: true
-    };
+const wrapper =
+document.getElementById("clock-wrapper");
 
-    let currentHue = savedSettings.hue;
-    let currentTimeSize = savedSettings.timeSize;
-    let currentDateRatio = savedSettings.dateRatio;
-    let showSeconds = savedSettings.showSeconds;
-    let showDate = savedSettings.showDate;
+const colorSlider =
+document.getElementById("color-slider");
 
-    colorSlider.value = currentHue;
-    timeSizeSlider.value = currentTimeSize;
-    dateRatioSlider.value = currentDateRatio;
-    secondsCheck.checked = showSeconds;
-    dateCheck.checked = showDate;
+const timeSizeSlider =
+document.getElementById("time-size-slider");
 
-    /**
-     * 追加・修正箇所:
-     * 安定化されたWakeLock取得関数
-     */
-    async function requestWakeLock() {
+const dateRatioSlider =
+document.getElementById("date-ratio-slider");
 
-        if (!('wakeLock' in navigator)) return;
+const secondsCheck =
+document.getElementById("toggle-seconds");
 
-        // 非表示時は取得しない
-        if (document.visibilityState !== 'visible') return;
+const dateCheck =
+document.getElementById("toggle-date");
 
-        // 多重防止
-        if (wakeLockRequestPending) return;
+/* 設定 */
 
-        wakeLockRequestPending = true;
+const saved =
+JSON.parse(localStorage.getItem("clockSettings")) || {
 
-        try {
+hue:0,
+timeSize:20,
+dateRatio:15,
+showSeconds:true,
+showDate:true
 
-            // 既存があれば解放（iOSバグ対策）
-            if (wakeLock) {
-                try {
-                    await wakeLock.release();
-                } catch(e) {}
-                wakeLock = null;
-            }
+};
 
-            wakeLock = await navigator.wakeLock.request('screen');
+let currentHue = saved.hue;
+let currentTimeSize = saved.timeSize;
+let currentDateRatio = saved.dateRatio;
+let showSeconds = saved.showSeconds;
+let showDate = saved.showDate;
 
-            console.log("WakeLock acquired");
+colorSlider.value=currentHue;
+timeSizeSlider.value=currentTimeSize;
+dateRatioSlider.value=currentDateRatio;
+secondsCheck.checked=showSeconds;
+dateCheck.checked=showDate;
 
-            wakeLock.addEventListener('release', () => {
+/* WakeLock */
 
-                console.log("WakeLock released");
+let wakeLock=null;
+let pending=false;
 
-                wakeLock = null;
+async function requestWakeLock(){
 
-                // 自動再取得
-                if (document.visibilityState === 'visible') {
-                    requestWakeLock();
-                }
+if(!("wakeLock" in navigator)) return;
 
-            });
+if(document.visibilityState!=="visible") return;
 
-        } catch (err) {
+if(pending) return;
 
-            console.log("WakeLock error:", err);
+pending=true;
 
-        } finally {
+try{
 
-            wakeLockRequestPending = false;
+if(wakeLock){
 
-        }
-    }
+await wakeLock.release();
+wakeLock=null;
 
-    function saveToStorage() {
+}
 
-        const settings = {
-            hue: currentHue,
-            timeSize: currentTimeSize,
-            dateRatio: currentDateRatio,
-            showSeconds: showSeconds,
-            showDate: showDate
-        };
+wakeLock=
+await navigator.wakeLock.request("screen");
 
-        localStorage.setItem('clockSettings', JSON.stringify(settings));
-    }
+wakeLock.addEventListener("release",()=>{
 
-    function applyStyles() {
+wakeLock=null;
 
-        const color = `hsl(${currentHue}, 100%, 50%)`;
+requestWakeLock();
 
-        timeDisplay.style.color = color;
-        dateDisplay.style.color = color;
+});
 
-        timeDisplay.style.fontSize = `${currentTimeSize}vw`;
+}catch(e){}
 
-        const calculatedDateSize =
-            (currentTimeSize * currentDateRatio) / 100;
+pending=false;
 
-        dateDisplay.style.fontSize =
-            `${calculatedDateSize}vw`;
-    }
+}
 
-    function update() {
+/* 定期再取得 */
+setInterval(requestWakeLock,10000);
 
-        const now = new Date();
+document.addEventListener(
+"visibilitychange",
+requestWakeLock
+);
 
-        if (showDate) {
+window.addEventListener(
+"pageshow",
+requestWakeLock
+);
 
-            const days =
-                ['日','月','火','水','木','金','土'];
+/* スタイル */
 
-            dateDisplay.textContent =
-                `${now.getMonth()+1}月${now.getDate()}日(${days[now.getDay()]})`;
+function applyStyles(){
 
-            dateDisplay.style.display = 'block';
+const color =
+`hsl(${currentHue},100%,50%)`;
 
-        } else {
+timeDisplay.style.color=color;
+dateDisplay.style.color=color;
 
-            dateDisplay.style.display = 'none';
+timeDisplay.style.fontSize=
+currentTimeSize+"vw";
 
-        }
+dateDisplay.style.fontSize=
+(currentTimeSize*currentDateRatio/100)+"vw";
 
-        const h =
-            String(now.getHours()).padStart(2,'0');
+}
 
-        const m =
-            String(now.getMinutes()).padStart(2,'0');
+/* 時計 */
 
-        const s =
-            String(now.getSeconds()).padStart(2,'0');
+function update(){
 
-        const colonHtml =
-            '<span class="colon">:</span>';
+const now=new Date();
 
-        let html =
-            `<span class="time-part hour">${h}</span>${colonHtml}<span class="time-part min">${m}</span>`;
+if(showDate){
 
-        if (showSeconds) {
+const d=["日","月","火","水","木","金","土"];
 
-            html +=
-                `${colonHtml}<span class="time-part sec">${s}</span>`;
+dateDisplay.textContent=
+`${now.getMonth()+1}月${now.getDate()}日(${d[now.getDay()]})`;
 
-        }
+dateDisplay.style.display="block";
 
-        timeDisplay.innerHTML = html;
-    }
+}else{
 
-    const handleInteraction = (e) => {
+dateDisplay.style.display="none";
 
-        if (settingsWindow.contains(e.target)) return;
+}
 
-        requestWakeLock();
+const h=
+String(now.getHours()).padStart(2,"0");
 
-        settingsWindow.style.display =
-            settingsWindow.style.display === 'block'
-                ? 'none'
-                : 'block';
-    };
+const m=
+String(now.getMinutes()).padStart(2,"0");
 
-    clockWrapper.addEventListener(
-        'touchstart',
-        handleInteraction,
-        { passive:true }
-    );
+const s=
+String(now.getSeconds()).padStart(2,"0");
 
-    clockWrapper.addEventListener(
-        'click',
-        handleInteraction
-    );
+let html=
+`<span class="time-part hour">${h}</span>
+<span class="colon">:</span>
+<span class="time-part min">${m}</span>`;
 
-    /**
-     * 追加・修正箇所:
-     * visibilitychange対応
-     */
-    document.addEventListener(
-        'visibilitychange',
-        () => {
+if(showSeconds){
 
-            if (
-                document.visibilityState === 'visible'
-            ) {
-                requestWakeLock();
-            }
+html+=`
+<span class="colon">:</span>
+<span class="time-part sec">${s}</span>`;
 
-        }
-    );
+}
 
-    /**
-     * 追加・修正箇所:
-     * resize対応（iOSアドレスバー対策）
-     */
-    window.addEventListener(
-        'resize',
-        requestWakeLock
-    );
+timeDisplay.innerHTML=html;
 
-    /**
-     * 追加・修正箇所:
-     * pageshow対応（復帰対策）
-     */
-    window.addEventListener(
-        'pageshow',
-        requestWakeLock
-    );
+}
 
-    /**
-     * 追加・修正箇所:
-     * 定期再取得（最重要）
-     */
-    setInterval(
-        requestWakeLock,
-        10000
-    );
+/* UI制御 */
 
-    window.addEventListener(
-        'load',
-        () => {
+wrapper.addEventListener("pointerdown",(e)=>{
 
-            setTimeout(
-                () => window.scrollTo(0,40),
-                300
-            );
+if(settingsWindow.contains(e.target)) return;
 
-            // 初回取得
-            requestWakeLock();
+if(settingsWindow.style.display==="block"){
 
-        }
-    );
+settingsWindow.style.display="none";
 
-    colorSlider.addEventListener(
-        'input',
-        e => {
+}else{
 
-            currentHue = e.target.value;
+settingsWindow.style.display="block";
 
-            applyStyles();
+}
 
-            saveToStorage();
+requestWakeLock();
 
-        }
-    );
+});
 
-    timeSizeSlider.addEventListener(
-        'input',
-        e => {
+/* 設定保存 */
 
-            currentTimeSize =
-                e.target.value;
+function save(){
 
-            applyStyles();
+localStorage.setItem("clockSettings",
 
-            saveToStorage();
+JSON.stringify({
 
-        }
-    );
+hue:currentHue,
+timeSize:currentTimeSize,
+dateRatio:currentDateRatio,
+showSeconds,
+showDate
 
-    dateRatioSlider.addEventListener(
-        'input',
-        e => {
+}));
 
-            currentDateRatio =
-                e.target.value;
+}
 
-            applyStyles();
+colorSlider.oninput=e=>{
+currentHue=e.target.value;
+applyStyles();
+save();
+};
 
-            saveToStorage();
+timeSizeSlider.oninput=e=>{
+currentTimeSize=e.target.value;
+applyStyles();
+save();
+};
 
-        }
-    );
+dateRatioSlider.oninput=e=>{
+currentDateRatio=e.target.value;
+applyStyles();
+save();
+};
 
-    secondsCheck.addEventListener(
-        'change',
-        e => {
+secondsCheck.onchange=e=>{
+showSeconds=e.target.checked;
+save();
+update();
+};
 
-            showSeconds =
-                e.target.checked;
+dateCheck.onchange=e=>{
+showDate=e.target.checked;
+save();
+update();
+};
 
-            saveToStorage();
+/* 起動 */
 
-            update();
+applyStyles();
+update();
 
-        }
-    );
+setInterval(update,1000);
 
-    dateCheck.addEventListener(
-        'change',
-        e => {
-
-            showDate =
-                e.target.checked;
-
-            saveToStorage();
-
-            update();
-
-        }
-    );
-
-    applyStyles();
-
-    setInterval(update,1000);
-
-    update();
+requestWakeLock();
 
 })();
 </script>
