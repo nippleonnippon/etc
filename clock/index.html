@@ -27,6 +27,11 @@
     src: url('./res/digital-7.ttf') format('truetype');
 }
 
+@font-face {
+    font-family: 'Digital';
+    src: url('./res/digital-7.regular.ttf') format('truetype');
+}
+
 /* 画面全体設定 */
 html, body {
     margin: 0;
@@ -80,10 +85,10 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Digital7-Mono', monospace;
+    font-family: 'Digital', monospace;
     white-space: nowrap;
     z-index: 5;
-    margin-right: 8%;
+    margin-right: 0%;
 }
 
 .time-part {
@@ -91,7 +96,7 @@ html, body {
 }
 
 .colon {
-    font-family: 'Digital7-Standard';
+    font-family: 'Digital';
     margin: 0 0.05em;
 }
 
